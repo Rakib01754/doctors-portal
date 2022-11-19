@@ -2,18 +2,20 @@ import { updateProfile } from 'firebase/auth';
 import React, { useContext, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../../contexts/AuthProvider';
 
 const Register = () => {
     const { register, handleSubmit, formState: { errors } } = useForm();
     const { createUser } = useContext(AuthContext)
     const [signUpError, setSignUpError] = useState('')
+    const navigate = useNavigate()
     const handleRegister = data => {
         setSignUpError('')
         const email = data.email;
         const password = data.password;
         const name = data.name;
+        console.log(name)
         createUser(email, password)
             .then(result => {
                 const user = result.user;
@@ -23,6 +25,7 @@ const Register = () => {
                 }).then(() => {
                     // Profile updated!
                     toast.success('Profile Updated')
+                    navigate('/')
                 }).catch((error) => {
                     // An error occurred
                     // ...
