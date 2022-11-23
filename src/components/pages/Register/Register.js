@@ -4,35 +4,77 @@ import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../../contexts/AuthProvider';
+import useToken from '../../../hooks/useToken';
 
 const Register = () => {
     const { register, handleSubmit, formState: { errors } } = useForm();
-    const { createUser } = useContext(AuthContext)
+    const { createUser, loginWithGoogle } = useContext(AuthContext)
     const [signUpError, setSignUpError] = useState('')
     const navigate = useNavigate()
+    const [createdUserEmailAddress, setCreatedUserEmailAddress] = useState('')
+    const [token] = useToken(createdUserEmailAddress)
+
+    if (token) {
+        navigate('/')
+    }
     const handleRegister = data => {
         setSignUpError('')
         const email = data.email;
         const password = data.password;
         const name = data.name;
-        console.log(name)
         createUser(email, password)
             .then(result => {
                 const user = result.user;
                 toast.success('User Registred')
+
                 updateProfile(user, {
                     displayName: name,
-                }).then(() => {
-                    // Profile updated!
-                    toast.success('Profile Updated')
-                    navigate('/')
-                }).catch((error) => {
-                    // An error occurred
-                    // ...
-                });
+                })
+                    .then(() => {
+                        // Profile updated!
+                        toast.success('Profile Updated')
+                        saveUser(name, email)
+                    })
+                    .catch((error) => {
+                        // An error occurred
+                        // ...
+                    });
             })
             .catch(error => setSignUpError(error.message))
     }
+
+    const saveUser = (name, email) => {
+        const user = { name, email }
+        fetch('http://localhost:5000/users', {
+            method: 'POST',
+            headers: {
+                'content-type': 'application/json'
+            },
+            body: JSON.stringify(user)
+        })
+            .then(res => res.json())
+            .then(data => {
+                if (data.acknowledged) {
+                    setCreatedUserEmailAddress(email)
+                }
+            })
+    }
+    const handleGoogleLogin = () => {
+        loginWithGoogle()
+            .then(result => {
+                const user = result.user;
+                const userName = user.displayName;
+                const userEmail = user.email
+                saveUser(userName, userEmail)
+                toast.success('Login Success');
+            })
+            .catch(error => {
+                const errorMessage = error.message;
+                toast.error(errorMessage)
+            })
+    }
+
+
     return (
         <div className='h-[500px] flex justify-center items-center'>
             <div className='w-96 p-7 border-2'>
@@ -69,9 +111,11 @@ const Register = () => {
                     </div>
                     <input type="submit" value='Register' className='btn btn-neutral w-full mt-2' />
                     <p className='text-sm text-center mt-2'>Already have an account <Link to='/login' className='text-secondary'>Login</Link></p>
-                    <div className="divider">OR</div>
-                    <button className='btn btn-outline w-full rounded'>CONTINUE WITH GOOGLE</button>
                 </form>
+                <div className="divider">OR</div>
+                <button
+                    onClick={handleGoogleLogin}
+                    className='btn btn-outline w-full rounded'>CONTINUE WITH GOOGLE</button>
             </div>
 
         </div>
